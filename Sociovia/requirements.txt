@@ -1,0 +1,55 @@
+# ----------------------------
+# Web framework and extensions
+# ----------------------------
+Flask==3.0.3
+Werkzeug==3.0.3
+Flask-Cors==4.0.1
+Flask-Session==0.6.0
+Flask-SQLAlchemy==3.1.1
+Flask-Login>=0.6.3    # added: compatible with Werkzeug 3.x
+
+# ----------------------------
+# Servers / ASGI
+# ----------------------------
+gunicorn==23.0.0
+fastapi==0.115.0
+httpx>=0.28.1,<1.0.0   # required for google-genai
+
+# ----------------------------
+# Databases
+# ----------------------------
+SQLAlchemy==2.0.35
+psycopg[binary]>=3.2
+psycopg2-binary==2.9.9
+PyMySQL==1.1.1
+
+# ----------------------------
+# Cloud / External APIs / AI
+# ----------------------------
+boto3>=1.35.21
+sendgrid>=6.11.0
+google-genai>=1.13.0
+google-auth-httplib2>=0.2.0
+google-api-python-client>=2.149.0
+facebook-business==19.0.1
+
+# ----------------------------
+# Utilities & Common libs
+# ----------------------------
+requests==2.32.3
+Pillow>=9.5.0
+email-validator==2.2.0
+python-dotenv==1.0.1
+cryptography==43.0.1
+itsdangerous==2.2.0
+utils==1.0.1
+pydantic>=2.8.0
+Jinja2==3.1.4
+playwright>=1.40.0
+pycountry>=24.6.1
+
+# ----------------------------
+# Optional (if using Google or Auth APIs elsewhere)
+# ----------------------------
+google-auth>=2.43.0
+google-auth-oauthlib>=1.2.0   # this is already fine for google-api-python-client

@@ -1,0 +1,17 @@
+Subject: Update on your Sociovia account
+
+Hi {{name}},
+
+Thank you for your interest in joining Sociovia. After reviewing your application, we are unable to approve your account at this time.
+
+Reason: {{reason}}
+
+If you believe this decision was made in error or if you have any questions, please feel free to contact our support team.
+
+Thank you for your understanding.
+
+Best regards,
+The Sociovia Team
+
+---
+This is an automated message. Please do not reply to this email.

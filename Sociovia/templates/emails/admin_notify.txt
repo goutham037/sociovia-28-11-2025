@@ -1,0 +1,23 @@
+Subject: New account to review – {{business_name}}
+
+Hello Admin,
+
+A new user account is awaiting review on Sociovia.
+
+User Details:
+- Name: {{name}}
+- Email: {{email}}
+- Business: {{business_name}}
+- Industry: {{industry}}
+
+Quick Actions:
+- Approve: {{approve_url}}
+- Reject: {{reject_url}}
+
+You can also review this application through the admin dashboard.
+
+Best regards,
+Sociovia System
+
+---
+This is an automated notification.

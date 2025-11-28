@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Sociovia{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="fas fa-tachometer-alt me-2"></i>Admin Dashboard</h2>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-clock text-warning mb-3" style="font-size: 2rem;"></i>
+                <h4>Review Queue</h4>
+                <p class="text-muted">Manage pending applications</p>
+                <a href="{{ url_for('admin_review') }}" class="btn btn-warning">
+                    <i class="fas fa-tasks me-2"></i>View Queue
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-users text-info mb-3" style="font-size: 2rem;"></i>
+                <h4>User Management</h4>
+                <p class="text-muted">View all users and their status</p>
+                <button class="btn btn-info" disabled>
+                    <i class="fas fa-users me-2"></i>Coming Soon
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-chart-bar text-success mb-3" style="font-size: 2rem;"></i>
+                <h4>Analytics</h4>
+                <p class="text-muted">View application statistics</p>
+                <button class="btn btn-success" disabled>
+                    <i class="fas fa-chart-bar me-2"></i>Coming Soon
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

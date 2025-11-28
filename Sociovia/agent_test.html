@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Ads Optimization – Continuous Optimize & Auto-Campaign</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            margin: 2rem;
+            background: #f9f9fb;
+            color: #222
+        }
+        
+        h1,
+        h2 {
+            color: #0b74de
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .05)
+        }
+        
+        input,
+        select,
+        button,
+        label {
+            font-size: 1rem
+        }
+        
+        input,
+        select,
+        button {
+            padding: .55rem;
+            margin: .35rem 0;
+            border: 1px solid #ccc;
+            border-radius: 6px
+        }
+        
+        button {
+            background: #0b74de;
+            color: white;
+            cursor: pointer;
+            font-weight: bold
+        }
+        
+        button:hover {
+            background: #095ca8
+        }
+        
+        button.success {
+            background: #28a745
+        }
+        
+        button.danger {
+            background: #e53e3e
+        }
+        
+        button.small {
+            padding: .3rem .6rem;
+            font-size: .85rem
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 1rem
+        }
+        
+        @media(max-width:980px) {
+            .grid {
+                grid-template-columns: 1fr
+            }
+        }
+        
+        .controls {
+            display: flex;
+            gap: .5rem;
+            flex-wrap: wrap
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: .75rem
+        }
+        
+        th,
+        td {
+            padding: .7rem;
+            text-align: left;
+            border-bottom: 1px solid #eee
+        }
+        
+        th {
+            background: #f0f7ff;
+            font-weight: 600
+        }
+        
+        .status {
+            margin-top: .75rem;
+            padding: .75rem;
+            background: #e7f3ff;
+            border-radius: 6px;
+            font-weight: 500
+        }
+        
+        .log {
+            max-height: 280px;
+            overflow: auto;
+            font-family: monospace;
+            background: #fbfdff;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #eef6ff
+        }
+        
+        .badge {
+            background: #eef7ff;
+            color: #0b74de;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-weight: 600
+        }
+        
+        .switch {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem
+        }
+        
+        .small-muted {
+            font-size: .85rem;
+            color: #666
+        }
+        
+        .copy {
+            cursor: pointer;
+            color: #0b74de;
+            font-family: monospace
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Ads Optimization – Continuous Optimize & Auto-Campaign</h1>
+    <p class="small-muted">Continuous optimization loop + automatic campaign creation when a campaign finishes. Works against <code>http://127.0.0.1:8000</code> if running; otherwise uses simulated metrics.</p>
+
+    <div class="grid">
+        <!-- Left column: controls, simulation, pending list -->
+        <div>
+            <div class="card">
+                <h2>Continuous Optimization</h2>
+                <div class="controls">
+                    <button id="btn-start" class="success small">Start Loop</button>
+                    <button id="btn-stop" class="danger small" disabled>Stop Loop</button>
+                    <button id="btn-runonce" class="small">Run Once</button>
+                    <button id="btn-simnow" class="small">Simulate & Queue</button>
+                </div>
+
+                <div style="margin-top:.6rem;">
+                    <label>Interval (seconds)</label>
+                    <input id="opt_interval" type="number" min="5" value="10" style="width:120px" />
+                    <label style="margin-left:8px">Dry-run</label>
+                    <input id="opt_dryrun" type="checkbox" checked />
+                    <label style="margin-left:12px">Auto-create campaign after finish</label>
+                    <input id="opt_autocreate" type="checkbox" checked />
+                </div>
+
+                <div style="margin-top:.6rem;">
+                    <label>Scale percent (when high ROAS)</label>
+                    <input id="opt_scale_pct" type="number" min="1" max="100" value="20" style="width:100px" />
+                    <label style="margin-left:10px">Canary pct</label>
+                    <input id="opt_canary_pct" type="number" min="0" max="100" value="10" style="width:100px" />
+                </div>
+
+                <div class="status" id="loop_status" style="display:none;"></div>
+            </div>
+
+            <div class="card">
+                <h2>Run Simulation (manual)</h2>
+                <div class="controls">
+                    <label>Rows</label>
+                    <input id="sim_rows" type="number" min="1" max="20" value="5" style="width:80px" />
+                    <label style="margin-left:8px">Variety</label>
+                    <select id="sim_variety">
+                        <option value="balanced">Balanced</option>
+                        <option value="low">Low</option>
+                        <option value="high">High</option>
+                    </select>
+                    <button id="btn-sim" class="small">Run</button>
+                </div>
+
+                <div id="sim_table_container" style="margin-top:1rem;display:none;">
+                    <h3>Simulation Results</h3>
+                    <table id="sim_table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Campaign</th>
+                                <th>Imp</th>
+                                <th>Clicks</th>
+                                <th>Spend</th>
+                                <th>ROAS</th>
+                                <th>Conv</th>
+                                <th>Freq</th>
+                                <th>Action</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Pending Approvals (from backend)</h2>
+                <table id="pending_table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Campaign</th>
+                            <th>Action</th>
+                            <th>Reason</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Right column: logs, controls -->
+        <div>
+            <div class="card">
+                <h2>Activity Log <span class="badge" id="log_count">0</span></h2>
+                <div class="log" id="log"></div>
+                <div style="margin-top:.6rem;">
+                    <button id="btn-clearlog" class="small ghost" style="border:1px solid #eee;background:#fff;color:#333">Clear</button>
+                    <button id="btn-downloadlog" class="small" style="margin-left:.5rem">Download</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Controls & Utilities</h2>
+                <div class="controls">
+                    <button id="btn-perm" class="small">Request Notification Permission</button>
+                    <button id="btn-refresh" class="small">Refresh Pending</button>
+                    <button id="btn-test-apply" class="small">Test Apply (dry)</button>
+                </div>
+                <p class="small-muted" style="margin-top:.6rem">When a campaign finishes (spend &ge; daily_budget or conversions &ge; threshold), the UI will create a new campaign copy (simulated or via <code>/api/campaigns/action</code>) if Auto-create is enabled.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer style="margin-top:1.25rem;font-size:.8rem;color:#666;">
+        <p>Agent: <code>http://127.0.0.1:8000</code> | Emails → <code>sharan1114411@gmail.com</code></p>
+    </footer>
+
+    <script>
+        /* ------------------------
+           Config & helpers
+           ------------------------ */
+        const API = "http://127.0.0.1:8000";
+        const APPROVER_EMAIL = "sharan1114411@gmail.com";
+
+        const THRESH = {
+            min_imp: 1000,
+            ctr_pause: 0.5,
+            freq_max: 6,
+            roas_scale: 2.0,
+            scale_pct: 20,
+            budget_overrun: 1.2,
+            high_impact_pct: 20
+        };
+
+        let loopTimer = null;
+        let isRunning = false;
+        let logEntries = [];
+        let lastCampaignMap = {}; // track campaigns for "finished" detection
+        let simulatedSequence = 0;
+
+        /* ------------------------
+           tiny logger
+           ------------------------ */
+        function log(msg, level = 'info') {
+            const ts = (new Date()).toLocaleTimeString();
+            const line = `[${ts}] ${msg}`;
+            logEntries.unshift(line);
+            if (logEntries.length > 500) logEntries.pop();
+            renderLog();
+            console[level === 'error' ? 'error' : 'log'](line);
+        }
+
+        function renderLog() {
+            const el = document.getElementById('log');
+            el.innerHTML = logEntries.map(l => `<div>${l}</div>`).join('');
+            document.getElementById('log_count').textContent = logEntries.length;
+        }
+
+        document.getElementById('btn-clearlog').addEventListener('click', () => {
+            logEntries = [];
+            renderLog();
+        });
+        document.getElementById('btn-downloadlog').addEventListener('click', () => {
+            const blob = new Blob([logEntries.join('\n')], {
+                type: 'text/plain'
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'agent-log.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        /* ------------------------
+           Notifications
+           ------------------------ */
+        async function ensureNotificationPermission() {
+            if (!('Notification' in window)) {
+                alert('Notifications not supported');
+                return false;
+            }
+            if (Notification.permission === 'granted') return true;
+            if (Notification.permission !== 'denied') {
+                const p = await Notification.requestPermission();
+                return p === 'granted';
+            }
+            return false;
+        }
+
+        function notify(title, body) {
+            if (!('Notification' in window)) return;
+            if (Notification.permission !== 'granted') return;
+            try {
+                new Notification(title, {
+                    body
+                });
+            } catch (e) {}
+        }
+
+        /* ------------------------
+           API helper
+           ------------------------ */
+        async function api(url, opts = {}) {
+            try {
+                const res = await fetch(API + url, {
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    ...opts
+                });
+                const txt = await res.text();
+                return {
+                    ok: res.ok,
+                    status: res.status,
+                    data: res.ok ? JSON.parse(txt) : txt
+                };
+            } catch (e) {
+                return {
+                    ok: false,
+                    error: e.message
+                };
+            }
+        }
+
+        /* ------------------------
+           Decision logic (JS port of decide_action_for_campaign)
+           ------------------------ */
+        function decideActionForCampaign(c, config = {}) {
+            const imp = c.impressions || 0;
+            const ctr = c.ctr || 0;
+            const roas = c.roas || 0;
+            const freq = c.frequency || 0;
+            const conv = c.conversions || 0;
+            const spend = c.spend_today || 0;
+            const budget = c.daily_budget || 0;
+
+            // high frequency
+            if (freq >= THRESH.freq_max && imp > 500) {
+                return {
+                    action: 'pause',
+                    reason: 'high_freq',
+                    confidence: 0.97,
+                    params: {},
+                    needsApproval: false
+                };
+            }
+            // low ctr
+            if (imp >= THRESH.min_imp && ctr < THRESH.ctr_pause && conv === 0) {
+                return {
+                    action: 'pause',
+                    reason: 'low_ctr',
+                    confidence: 0.95,
+                    params: {},
+                    needsApproval: false
+                };
+            }
+            // overspend
+            if (budget > 0 && spend > budget * THRESH.budget_overrun) {
+                return {
+                    action: 'decrease_budget',
+                    reason: 'overspend',
+                    confidence: 0.9,
+                    params: {
+                        pct: 20
+                    },
+                    needsApproval: false
+                };
+            }
+            // scale
+            if (roas >= THRESH.roas_scale && conv >= 3) {
+                const pct = config.scale_pct || THRESH.scale_pct;
+                const needsApproval = pct >= THRESH.high_impact_pct;
+                return {
+                    action: 'increase_budget',
+                    reason: 'high_roas',
+                    confidence: 0.85,
+                    params: {
+                        pct,
+                        canary_pct: config.canary_pct || 10
+                    },
+                    needsApproval
+                };
+            }
+            return null;
+        }
+
+        /* ------------------------
+           Continuous loop logic
+           ------------------------ */
+        async function runOptimizeOnce() {
+            const dry = document.getElementById('opt_dryrun').checked;
+            const scale_pct = parseInt(document.getElementById('opt_scale_pct').value || '20', 10);
+            const canary_pct = parseInt(document.getElementById('opt_canary_pct').value || '10', 10);
+            const autoCreate = document.getElementById('opt_autocreate').checked;
+
+            log('Running optimization cycle (dry_run=' + dry + ')');
+
+            // try backend metrics first
+            let res = await api('/api/campaigns/metrics', {
+                method: 'POST'
+            });
+            let metrics = null;
+            if (res.ok && res.data && Array.isArray(res.data.campaigns)) {
+                metrics = res.data.campaigns;
+                log('Fetched ' + metrics.length + ' campaigns from backend');
+            } else {
+                // fallback to local simulation
+                metrics = generateLocalSim(parseInt(document.getElementById('sim_rows').value || '5', 10), 'balanced').metrics_rows;
+                log('Using simulated metrics (' + metrics.length + ')');
+            }
+
+            // iterate campaigns and decide
+            for (const c of metrics) {
+                // track last known metrics
+                const prev = lastCampaignMap[c.campaign_id] || {};
+                lastCampaignMap[c.campaign_id] = c;
+
+                const decision = decideActionForCampaign(c, {
+                    scale_pct,
+                    canary_pct
+                });
+                if (decision) {
+                    const item = {
+                        campaign_id: c.campaign_id,
+                        action: decision.action,
+                        params: decision.params || {},
+                        reason: decision.reason,
+                        conf: decision.confidence,
+                        needs_approval: decision.needsApproval,
+                        metrics: c
+                    };
+
+                    // log and notify
+                    log(`Decision: ${c.campaign_id} -> ${item.action} (reason=${item.reason})`);
+                    notify('Agent Decision: ' + c.campaign_name || c.campaign_id, item.action + ' — ' + item.reason);
+
+                    // if needs approval -> call /api/add-action (to create pending)
+                    if (decision.needsApproval) {
+                        if (dry) {
+                            log(`[DRY] Would queue for approval: ${c.campaign_id} ${item.action}`);
+                        } else {
+                            const addRes = await api('/api/add-action', {
+                                method: 'POST',
+                                body: JSON.stringify({...item,
+                                    needs_approval: true
+                                })
+                            });
+                            if (addRes.ok) {
+                                log(`Queued approval for ${c.campaign_id} (action_id=${addRes.data?.action_id||'unknown'})`);
+                                notify('Approval queued', c.campaign_name || c.campaign_id);
+                            } else {
+                                log(`Failed to queue approval for ${c.campaign_id}: ${addRes.error||addRes.data}`, 'error');
+                            }
+                        }
+                    } else {
+                        // apply directly
+                        if (dry) {
+                            log(`[DRY] Would apply action: ${JSON.stringify(item)}`);
+                        } else {
+                            const applyRes = await api('/api/campaigns/action', {
+                                method: 'POST',
+                                body: JSON.stringify({...item,
+                                    dry_run: false
+                                })
+                            });
+                            if (applyRes.ok) {
+                                log(`Applied action on ${c.campaign_id} -> ${item.action}`);
+                                notify('Action applied', `${c.campaign_name||c.campaign_id}: ${item.action}`);
+                            } else {
+                                log(`Failed to apply action on ${c.campaign_id}: ${applyRes.error||applyRes.data}`, 'error');
+                            }
+                        }
+                    }
+                } // end decision
+
+                // Detect campaign finished (criteria: spend >= daily_budget OR conversions >= 10 OR frequency >= 10)
+                const finished = (c.daily_budget && c.spend_today >= c.daily_budget) || (c.conversions && c.conversions >= 10) || (c.frequency && c.frequency >= 10);
+                if (finished) {
+                    log(`Campaign finished detected: ${c.campaign_id}`);
+                    // auto-create new campaign if enabled
+                    if (autoCreate) {
+                        await maybeCreateReplacementCampaign(c, dry);
+                    }
+                }
+            }
+
+            // refresh pending list
+            await loadPending();
+        }
+
+        /* ------------------------
+           Auto-create replacement campaign
+           ------------------------ */
+        async function maybeCreateReplacementCampaign(oldCampaign, dry) {
+            // create a new campaign id and simple copy
+            const newId = 'auto_' + (Date.now()).toString(36).slice(-6) + '_' + Math.floor(Math.random() * 900).toString();
+            const newCampaign = {
+                campaign_id: newId,
+                campaign_name: (oldCampaign.campaign_name || oldCampaign.campaign_id) + ' (relaunch)',
+                daily_budget: oldCampaign.daily_budget || (oldCampaign.spend_today || 100),
+                spend_today: 0,
+                impressions: 0,
+                clicks: 0,
+                roas: oldCampaign.roas || 1.0,
+                conversions: 0,
+                frequency: 0,
+                ctr: oldCampaign.ctr || 1.0
+            };
+
+            if (dry) {
+                log(`[DRY] Would create new campaign ${newCampaign.campaign_id} based on ${oldCampaign.campaign_id}`);
+                notify('Auto-create (dry)', newCampaign.campaign_name);
+                return;
+            }
+
+            // call backend action endpoint to create campaign (backend will accept generic action)
+            const payload = {
+                campaign_id: newCampaign.campaign_id,
+                action: 'create_campaign',
+                params: {
+                    name: newCampaign.campaign_name,
+                    daily_budget: newCampaign.daily_budget
+                },
+                reason: 'auto_relaunch',
+                metrics: newCampaign,
+                dry_run: false
+            };
+            const res = await api('/api/campaigns/action', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                log(`Created new campaign ${newCampaign.campaign_id} (based on ${oldCampaign.campaign_id})`);
+                notify('Auto-created campaign', newCampaign.campaign_name);
+                // optionally add to lastCampaignMap to track it
+                lastCampaignMap[newCampaign.campaign_id] = newCampaign;
+            } else {
+                log(`Failed to create campaign ${newCampaign.campaign_id}: ${res.error||res.data}`, 'error');
+            }
+        }
+
+        /* ------------------------
+           UI controls for loop
+           ------------------------ */
+        document.getElementById('btn-start').addEventListener('click', () => {
+            if (isRunning) return;
+            const interval = Math.max(5, parseInt(document.getElementById('opt_interval').value || '10', 10));
+            isRunning = true;
+            document.getElementById('btn-start').disabled = true;
+            document.getElementById('btn-stop').disabled = false;
+            document.getElementById('loop_status').style.display = 'block';
+            document.getElementById('loop_status').textContent = `Running — interval ${interval}s`;
+            log('Starting continuous optimization loop (interval ' + interval + 's)');
+            // immediate run
+            runOptimizeOnce();
+            loopTimer = setInterval(runOptimizeOnce, interval * 1000);
+        });
+
+        document.getElementById('btn-stop').addEventListener('click', () => {
+            if (!isRunning) return;
+            clearInterval(loopTimer);
+            loopTimer = null;
+            isRunning = false;
+            document.getElementById('btn-start').disabled = false;
+            document.getElementById('btn-stop').disabled = true;
+            document.getElementById('loop_status').textContent = 'Stopped';
+            log('Stopped continuous optimization loop');
+        });
+
+        document.getElementById('btn-runonce').addEventListener('click', () => runOptimizeOnce());
+
+        /* ------------------------
+           Pending approvals UI
+           ------------------------ */
+        async function loadPending() {
+            const res = await api('/api/pending');
+            const tbody = document.querySelector('#pending_table tbody');
+            tbody.innerHTML = '';
+            if (!res.ok) {
+                tbody.innerHTML = '<tr><td colspan="6">No pending actions (or backend unreachable)</td></tr>';
+                return;
+            }
+            const data = res.data;
+            if (!Array.isArray(data) || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">No pending actions</td></tr>';
+                return;
+            }
+            for (const p of data) {
+                const pl = p.payload || {};
+                const approveUrl = `${API}/approve?action=approve&campaign_id=${encodeURIComponent(p.payload?.campaign_id||p.campaign_id)}&action_id=${p.id}&token=${btoa(p.id+'|dummy')}`;
+                const rejectUrl = approveUrl.replace('action=approve', 'action=reject');
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+      <td><code class="copy" onclick="navigator.clipboard.writeText('${p.id}')">${p.id.slice(0,8)}...</code></td>
+      <td>${p.payload?.campaign_name || p.campaign_id}</td>
+      <td><strong>${pl.action || ''}</strong></td>
+      <td>${pl.reason || ''}</td>
+      <td>${new Date(p.created).toLocaleString()}</td>
+      <td>
+        <button class="small" onclick="window.open('${approveUrl}','_blank')">Approve</button>
+        <button class="small" onclick="window.open('${rejectUrl}','_blank')">Reject</button>
+      </td>
+    `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        /* ------------------------
+           Simulation helpers (local) — JS port of generate_gemini_mock_simulation
+           ------------------------ */
+        function generateLocalSim(variety = 'balanced', num_rows = 5) {
+            const mul = {
+                low: 0.3,
+                high: 2.0,
+                balanced: 1.0
+            }[variety] || 1.0;
+            const rows = [];
+            for (let i = 0; i < num_rows; i++) {
+                const imp = Math.floor(10000 * mul * (1 + (Math.random() * 0.4 - 0.2)));
+                rows.push({
+                    campaign_id: `sim_${++simulatedSequence}_${i+1}`,
+                    campaign_name: `Sim Campaign ${simulatedSequence}_${i+1}`,
+                    impressions: imp,
+                    clicks: Math.max(1, Math.floor(imp * (0.01 + Math.random() * 0.04))),
+                    spend: +(Math.random() * (imp * 0.02 - imp * 0.005) + imp * 0.005).toFixed(2),
+                    roas: +(Math.random() * (3.5 - 0.5) + 0.5).toFixed(2),
+                    conversions: Math.floor(Math.random() * 12),
+                    frequency: +(Math.random() * (6 - 1) + 1).toFixed(2),
+                    ctr: +(Math.random() * (5 - 0.5) + 0.5).toFixed(2),
+                    daily_budget: +(Math.random() * (300 - 50) + 50).toFixed(2),
+                    spend_today: +(Math.random() * (280 - 30) + 30).toFixed(2)
+                });
+            }
+            return {
+                metrics_rows: rows
+            };
+        }
+
+        /* ------------------------
+           Simulation UI
+           ------------------------ */
+        document.getElementById('btn-sim').addEventListener('click', async() => {
+            const rows = parseInt(document.getElementById('sim_rows').value || '5', 10);
+            const variety = document.getElementById('sim_variety').value;
+            const mock = generateLocalSim(variety, rows).metrics_rows;
+            renderSimTable(mock, mock.map(() => ({
+                action: 'none',
+                reason: ''
+            })));
+        });
+
+        function renderSimTable(simRows, decisions) {
+            const container = document.getElementById('sim_table_container');
+            container.style.display = 'block';
+            const tbody = document.querySelector('#sim_table tbody');
+            tbody.innerHTML = '';
+            simRows.forEach((c, i) => {
+                const d = decisions[i] || {};
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+      <td><input type="checkbox" class="sim-select" data-idx="${i}" /></td>
+      <td>${c.campaign_name}</td>
+      <td>${c.impressions}</td>
+      <td>${c.clicks}</td>
+      <td>${c.spend_today}</td>
+      <td>${c.roas}</td>
+      <td>${c.conversions}</td>
+      <td>${c.frequency}</td>
+      <td><strong>${d.action || '-'}</strong></td>
+      <td>${d.reason || '-'}</td>
+    `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        /* ------------------------
+           Manual simulate & queue (Apply Selected)
+           ------------------------ */
+        document.getElementById('btn-simnow').addEventListener('click', async() => {
+            // use local sim and apply selected logic (queue approvals)
+            const rows = parseInt(document.getElementById('sim_rows').value || '5', 10);
+            const variety = document.getElementById('sim_variety').value;
+            const simRows = generateLocalSim(variety, rows).metrics_rows;
+            renderSimTable(simRows, simRows.map(c => decideActionForCampaign(c) || {
+                action: 'none',
+                reason: ''
+            }));
+            // automatically queue all with decisions
+            const selected = simRows.map((c, i) => i); // all
+            const actions = selected.map(i => {
+                const c = simRows[i];
+                const d = decideActionForCampaign(c) || {};
+                return {
+                    campaign_id: c.campaign_id,
+                    action: d.action,
+                    params: d.params || {},
+                    reason: d.reason || 'sim',
+                    needs_approval: d.needsApproval || false,
+                    metrics: c
+                };
+            });
+            // send to backend add-action for those that need approval, else apply directly (dry-run respects checkbox)
+            const dry = document.getElementById('opt_dryrun').checked;
+            for (const a of actions) {
+                if (!a.action || a.action === 'none') continue;
+                if (a.needs_approval) {
+                    log(`[SIM] Queuing approval for ${a.campaign_id}`);
+                    if (!dry) {
+                        const r = await api('/api/add-action', {
+                            method: 'POST',
+                            body: JSON.stringify(a)
+                        });
+                        if (r.ok) log(`Queued: ${a.campaign_id}`);
+                        else log(`Queue failed: ${r.error||r.data}`, 'error');
+                    }
+                } else {
+                    log(`[SIM] Applying ${a.action} to ${a.campaign_id}`);
+                    if (!dry) {
+                        const r = await api('/api/campaigns/action', {
+                            method: 'POST',
+                            body: JSON.stringify({...a,
+                                dry_run: false
+                            })
+                        });
+                        if (r.ok) log(`Applied: ${a.campaign_id}`);
+                        else log(`Apply failed: ${r.error||r.data}`, 'error');
+                    }
+                }
+            }
+            await loadPending();
+        });
+
+        /* ------------------------
+           Test apply button
+           ------------------------ */
+        document.getElementById('btn-test-apply').addEventListener('click', async() => {
+            const test = {
+                campaign_id: 'test-c123',
+                action: 'pause',
+                params: {},
+                reason: 'manual-test',
+                metrics: {}
+            };
+            const dry = document.getElementById('opt_dryrun').checked;
+            if (dry) {
+                log('[DRY] Would call /api/campaigns/action with ' + JSON.stringify(test));
+                notify('DRY run', 'Test apply');
+                return;
+            }
+            const res = await api('/api/campaigns/action', {
+                method: 'POST',
+                body: JSON.stringify(test)
+            });
+            if (res.ok) {
+                log('Test apply success');
+                notify('Applied test action', 'OK');
+            } else {
+                log('Test apply failed: ' + (res.error || res.data), 'error');
+            }
+        });
+
+        /* ------------------------
+           Refresh / init
+           ------------------------ */
+        document.getElementById('btn-perm').addEventListener('click', () => ensureNotificationPermission().then(ok => {
+            if (ok) log('Notification permission granted');
+            else log('Notification permission not granted');
+        }));
+
+        document.getElementById('btn-refresh').addEventListener('click', () => loadPending());
+
+        async function init() {
+            await loadPending();
+            renderLog();
+        }
+        init();
+
+        /* Auto-refresh pending every 15s */
+        setInterval(() => {
+            if (!isRunning) loadPending();
+        }, 15 * 1000);
+    </script>
+</body>
+
+</html>

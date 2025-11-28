@@ -1,0 +1,17 @@
+Subject: Your Sociovia account is approved
+
+Hi {{name}},
+
+Great news! Your Sociovia account has been approved and is now active.
+
+You can now sign in to your account and start connecting with other businesses on our platform.
+
+Sign in here: http://localhost:5000/login
+
+Welcome to the Sociovia community!
+
+Best regards,
+The Sociovia Team
+
+---
+This is an automated message. Please do not reply to this email.

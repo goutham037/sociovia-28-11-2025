@@ -1,0 +1,2 @@
+-- database: ./sociovia.db
+drop workspaces

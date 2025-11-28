@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Login - Sociovia{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-shield-alt me-2"></i>Admin Access
+                </h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">Administrative access to review user applications.</p>
+                
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Admin Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required 
+                               value="{{ request.form.get('email', '') }}">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-warning w-100 mb-3">
+                        <i class="fas fa-key me-2"></i>Admin Sign In
+                    </button>
+                </form>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <small>For authorized administrators only.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
